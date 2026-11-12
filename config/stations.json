@@ -1,0 +1,10 @@
+{
+  "system": "CEAT EyRes QC+ Dual-Robot Vision - Phase 1 Simulation",
+  "simulation_only": true,
+  "stations": {
+    "S1": {"robot": "Robot 1", "camera": "Camera 1 (virtual 4K line scan)", "views": ["sidewall1", "inner"]},
+    "S2": {"robot": "Robot 2", "camera": "Camera 2 (virtual 4K line scan)", "views": ["tread", "bead", "sidewall2"]}
+  },
+  "checkpoint_map": {"sidewall1": 101, "inner": 102, "tread": 201, "bead": 202, "sidewall2": 203},
+  "real_hardware_writes_enabled": false
+}

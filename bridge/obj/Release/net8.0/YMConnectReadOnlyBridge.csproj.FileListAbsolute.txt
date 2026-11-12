@@ -1,0 +1,14 @@
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\YMConnectReadOnlyBridge.exe
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\YMConnectReadOnlyBridge.deps.json
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\YMConnectReadOnlyBridge.runtimeconfig.json
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\YMConnectReadOnlyBridge.dll
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\YMConnectReadOnlyBridge.pdb
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.GeneratedMSBuildEditorConfig.editorconfig
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.AssemblyInfoInputs.cache
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.AssemblyInfo.cs
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.csproj.CoreCompileInputs.cache
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.dll
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\refint\YMConnectReadOnlyBridge.dll
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.pdb
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.genruntimeconfig.cache
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\ref\YMConnectReadOnlyBridge.dll

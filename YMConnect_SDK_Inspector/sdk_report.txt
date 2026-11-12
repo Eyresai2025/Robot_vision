@@ -1,0 +1,90 @@
+SDK path: D:\YMConnect\YMConnectDotNet_1_1_10_Windows\YMConnect_CS.dll
+Assembly: YMConnect_CS, Version=1.1.10.0, Culture=neutral, PublicKeyToken=null
+
+TYPE: YMConnect.ControllerStateData
+  PROP CycleMode CycleMode
+  PROP Boolean IsRunning
+  PROP ControlMode ControlMode
+  PROP Boolean IsInHold
+  PROP Boolean IsAlarming
+  PROP Boolean IsErroring
+  PROP Boolean IsServoOn
+
+TYPE: YMConnect.ByteVariableData
+  PROP Byte Value
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.IntegerVariableData
+  PROP Int16 Value
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.DoubleIntVariableData
+  PROP Int32 Value
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.RealVariableData
+  PROP Single Value
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.StringVariableData
+  PROP String Value
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.RobotPositionVariableData
+  PROP PositionData PositionData
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.BaseAxisPositionVariableData
+  PROP PositionData PositionData
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.StationPositionVariableData
+  PROP PositionData PositionData
+  PROP UInt16 VariableIndex
+
+TYPE: YMConnect.ByteVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out ByteVariableData& variableData)
+
+TYPE: YMConnect.IntegerVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out IntegerVariableData& variableData)
+
+TYPE: YMConnect.DoubleIntVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out DoubleIntVariableData& variableData)
+
+TYPE: YMConnect.RealVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out RealVariableData& variableData)
+
+TYPE: YMConnect.StringVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out StringVariableData& variableData)
+
+TYPE: YMConnect.RobotPositionVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out RobotPositionVariableData& variableData)
+
+TYPE: YMConnect.BaseAxisPositionVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out BaseAxisPositionVariableData& variableData)
+
+TYPE: YMConnect.StationPositionVariableInterface
+  METHOD StatusInfo Read(UInt16 variableIndex, out StationPositionVariableData& variableData)
+
+TYPE: YMConnect.VariablesInterface
+
+TYPE: YMConnect.ControllerStateInterface
+  METHOD StatusInfo ReadState(out ControllerStateData& statusDataObject)
+  METHOD StatusInfo ReadSystemInformation(SystemInfoId sysInfoId, out SystemInfoData& systemInfo)
+  METHOD StatusInfo ReadOperatingTimes(ControlGroupId controlGroupId, TimeType timeType, out TimeData& timeData, ApplicationNumber appNumber [optional])
+  METHOD StatusInfo ReadSystemParam(SystemParameterType parameterType, Int32 parameterNumber, out Int32& parameterValue)
+  METHOD StatusInfo ReadSystemParam(SystemParameterType parameterType, Int32 parameterNumber, Int32 parameterGroup, out Int32& parameterValue)
+
+TYPE: YMConnect.MotomanController
+  PROP FaultInterface Faults
+  PROP ControlGroupInterface ControlGroup
+  PROP VariablesInterface Variables
+  PROP ControllerStateInterface Status
+  PROP JobInterface Job
+  PROP FileInterface Files
+  PROP IOInterface IO
+  PROP ControlCommandsInterface ControlCommands
+  PROP MotionManagerInterface MotionManager
+  PROP KinematicsInterface Kinematics
+  METHOD static MotomanController OpenConnection(String ipAddress, out StatusInfo& status, Int32 receivePacketTimeout_ms [optional], Int32 sendPacketRetries [optional], Boolean loggingEnabled [optional])
+  METHOD Void CloseConnection()

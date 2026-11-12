@@ -1,0 +1,98 @@
+
+# ==========================================
+# Python Virtual Environments
+# ==========================================
+env/
+env_clean/
+venv/
+.venv/
+ENV/
+
+# ==========================================
+# Python Cache Files
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==========================================
+# IDE / Editor
+# ==========================================
+.vscode/
+.idea/
+*.sublime-workspace
+*.swp
+*.swo
+
+# ==========================================
+# Environment Variables / Secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+
+# ==========================================
+# Logs and Temporary Files
+# ==========================================
+*.log
+logs/
+*.tmp
+*.bak
+*.temp
+temp/
+tmp/
+
+# ==========================================
+# Build / Distribution
+# ==========================================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ==========================================
+# Operating System Files
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ==========================================
+# Generated Robot Vision Outputs
+# ==========================================
+outputs/
+results/
+captures/
+recordings/
+debug/
+*.avi
+*.mp4
+
+# ==========================================
+# Model Checkpoints / Large Files
+# ==========================================
+*.pt
+*.pth
+*.onnx
+*.engine
+*.weights
+
+# ==========================================
+# Optional: Generated data
+# Uncomment only if data/ contains generated
+# data that should not be uploaded.
+# ==========================================
+# data/generated/
+# data/output/
+# data/processed/

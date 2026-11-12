@@ -1,0 +1,63 @@
+{
+  "sku": "SKU_005",
+  "version": 1,
+  "status": "DRAFT",
+  "created_at": "2026-11-09T17:51:18+05:30",
+  "recipe": {
+    "code": "SKU_005",
+    "width": 195,
+    "aspect": 65,
+    "rim": 15.0,
+    "rpm": 60.0,
+    "description": "",
+    "station_confirmed": true,
+    "checkpoints": {
+      "sidewall1": "101",
+      "inner": "102",
+      "tread": "201",
+      "bead": "202",
+      "sidewall2": "203"
+    },
+    "camera_profiles": {
+      "sidewall1": {
+        "exposure_us": "",
+        "gain_db": "0",
+        "frame_lines": "",
+        "encoder_ppr": "",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "inner": {
+        "exposure_us": "",
+        "gain_db": "0",
+        "frame_lines": "",
+        "encoder_ppr": "",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "tread": {
+        "exposure_us": "",
+        "gain_db": "0",
+        "frame_lines": "",
+        "encoder_ppr": "",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "bead": {
+        "exposure_us": "",
+        "gain_db": "0",
+        "frame_lines": "",
+        "encoder_ppr": "",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "sidewall2": {
+        "exposure_us": "",
+        "gain_db": "0",
+        "frame_lines": "",
+        "encoder_ppr": "",
+        "trigger": "SIMULATED_ENCODER"
+      }
+    },
+    "calibration_reviewed": false,
+    "notes": ""
+  },
+  "simulation_only": true,
+  "physical_robot_authorized": false
+}

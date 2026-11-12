@@ -1,0 +1,5 @@
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\win-x64\publish\YMConnectReadOnlyBridge.exe
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\win-x64\publish\YMConnectReadOnlyBridge.dll
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\win-x64\publish\YMConnectReadOnlyBridge.deps.json
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\win-x64\publish\YMConnectReadOnlyBridge.runtimeconfig.json
+D:\CEAT_Robot_Vision\bridge\bin\Release\net8.0\win-x64\publish\YMConnectReadOnlyBridge.pdb

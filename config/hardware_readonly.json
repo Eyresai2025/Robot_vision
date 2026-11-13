@@ -4,5 +4,9 @@
   "bridge_executable": "D:/CEAT_Robot_Vision/bridge/bin/Release/net8.0/win-x64/publish/YMConnectReadOnlyBridge.exe",
   "poll_interval_ms": 1000,
   "approved_read_variables": [],
-  "notes": "Enable only after Yaskawa/controls engineering approval; no writes or motion available."
+  "notes": "Enable only after Yaskawa/controls engineering approval; no writes or motion available.",
+  "stale_timeout_ms": 3500,
+  "auto_reconnect": false,
+  "max_reconnect_attempts": 3,
+  "reconnect_delay_ms": 3000
 }

@@ -1,0 +1,28 @@
+﻿timestamp,robot_id,mode,event,detail
+2026-11-13T04:23:18.161517+00:00,1,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T04:23:18.166190+00:00,2,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T04:24:19.984951+00:00,0,SIMULATION,message,Offline hardware readiness completed: 8/8 checks passed.
+2026-11-13T04:24:58.002982+00:00,0,SIMULATION,message,Offline fault demo exercised simulated transitions only; no controller contacted.
+2026-11-13T04:25:29.680405+00:00,0,SIMULATION,message,IP address configuration saved (no network connection opened).
+2026-11-13T04:25:37.607344+00:00,1,SIMULATION,message,Virtual robot disconnected.
+2026-11-13T04:25:39.271932+00:00,2,SIMULATION,message,Virtual robot disconnected.
+2026-11-13T04:25:46.297429+00:00,1,HARDWARE-READONLY,message,Virtual robot disconnected.
+2026-11-13T04:25:46.299523+00:00,2,HARDWARE-READONLY,message,Virtual robot disconnected.
+2026-11-13T04:43:19.051454+00:00,1,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T04:43:19.054449+00:00,2,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T05:39:24.555092+00:00,1,SIMULATION,message,Virtual checkpoint 101: request token 1.
+2026-11-13T05:39:24.911072+00:00,1,SIMULATION,message,"Virtual capture complete: checkpoint 101, token 1."
+2026-11-13T05:39:25.143029+00:00,2,SIMULATION,message,Virtual checkpoint 201: request token 1.
+2026-11-13T05:39:25.434712+00:00,2,SIMULATION,message,"Virtual capture complete: checkpoint 201, token 1."
+2026-11-13T05:39:25.813935+00:00,1,SIMULATION,message,Virtual checkpoint 102: request token 2.
+2026-11-13T05:39:26.143221+00:00,1,SIMULATION,message,"Virtual capture complete: checkpoint 102, token 2."
+2026-11-13T05:39:26.534873+00:00,2,SIMULATION,message,Virtual checkpoint 202: request token 2.
+2026-11-13T05:39:26.836143+00:00,2,SIMULATION,message,"Virtual capture complete: checkpoint 202, token 2."
+2026-11-13T05:39:27.903080+00:00,2,SIMULATION,message,Virtual checkpoint 203: request token 3.
+2026-11-13T05:39:28.263325+00:00,2,SIMULATION,message,"Virtual capture complete: checkpoint 203, token 3."
+2026-11-13T05:52:29.392027+00:00,1,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T05:52:29.396028+00:00,2,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T06:48:07.097751+00:00,1,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T06:48:07.100288+00:00,2,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T06:56:58.500485+00:00,1,SIMULATION,message,Virtual robot connected; no network connection opened.
+2026-11-13T06:56:58.504485+00:00,2,SIMULATION,message,Virtual robot connected; no network connection opened.

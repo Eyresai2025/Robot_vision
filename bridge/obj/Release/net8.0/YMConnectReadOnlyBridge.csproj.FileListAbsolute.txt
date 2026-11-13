@@ -12,3 +12,4 @@ D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\refint\YMConnectReadOnlyBridge.dl
 D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.pdb
 D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.genruntimeconfig.cache
 D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\ref\YMConnectReadOnlyBridge.dll
+D:\CEAT_Robot_Vision\bridge\obj\Release\net8.0\YMConnectReadOnlyBridge.sourcelink.json

@@ -1,0 +1,63 @@
+{
+  "sku": "CEAT_195_65_R15",
+  "version": 1,
+  "status": "DRAFT",
+  "created_at": "2026-11-13T10:00:40+05:30",
+  "recipe": {
+    "code": "CEAT_195_65_R15",
+    "width": 195,
+    "aspect": 65,
+    "rim": 15.0,
+    "rpm": 60.0,
+    "description": "",
+    "station_confirmed": true,
+    "checkpoints": {
+      "sidewall1": "101",
+      "inner": "102",
+      "tread": "201",
+      "bead": "202",
+      "sidewall2": "203"
+    },
+    "camera_profiles": {
+      "sidewall1": {
+        "exposure_us": "23",
+        "gain_db": "10",
+        "frame_lines": "1028",
+        "encoder_ppr": "12",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "inner": {
+        "exposure_us": "13",
+        "gain_db": "10",
+        "frame_lines": "1098",
+        "encoder_ppr": "12",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "tread": {
+        "exposure_us": "212",
+        "gain_db": "12",
+        "frame_lines": "1098",
+        "encoder_ppr": "12",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "bead": {
+        "exposure_us": "21",
+        "gain_db": "12",
+        "frame_lines": "1098",
+        "encoder_ppr": "12",
+        "trigger": "SIMULATED_ENCODER"
+      },
+      "sidewall2": {
+        "exposure_us": "12",
+        "gain_db": "12",
+        "frame_lines": "1098",
+        "encoder_ppr": "12",
+        "trigger": "SIMULATED_ENCODER"
+      }
+    },
+    "calibration_reviewed": false,
+    "notes": ""
+  },
+  "simulation_only": true,
+  "physical_robot_authorized": false
+}

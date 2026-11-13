@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("YMConnectReadOnlyBridge")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+35fff744a46740b242e230866b95e1f51d1c6d5a")]
 [assembly: System.Reflection.AssemblyProductAttribute("YMConnectReadOnlyBridge")]
 [assembly: System.Reflection.AssemblyTitleAttribute("YMConnectReadOnlyBridge")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

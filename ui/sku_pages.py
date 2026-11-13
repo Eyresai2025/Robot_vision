@@ -176,24 +176,54 @@ class SKUWizard(QWidget):
         p.addWidget(txt('Any physical job mapping must be verified with Yaskawa and the controls engineer before hardware writes are permitted.',11,MUTED))
 
     def build_cameras(self,v):
-        p=card(v,'Step 4 — Per-View Camera Profiles')
+        p=card(v,'Step 4 — Software-Start Camera Profiles')
+        p.addWidget(txt('Two shared 4K LUCID cameras. Each of the five views has independent settings. No encoder or hardware trigger.',12,MUTED))
         self.view_picker=QComboBox()
         for key in self.views:self.view_picker.addItem(store.VIEW_NAMES[key],key)
         p.addWidget(self.view_picker)
         self.assignment=txt('',12,PURPLE,True);p.addWidget(self.assignment)
-        grid=QGridLayout();grid.setSpacing(12)
-        labels=[('Exposure (µs)','exposure_us','Validated exposure'),('Gain (dB)','gain_db','0'),
-                ('Frame height (lines)','frame_lines','Target lines'),('Encoder pulses / revolution','encoder_ppr','Measured pulses/rev')]
+        grid=QGridLayout();grid.setSpacing(11)
+        labels=[('Exposure (µs)','exposure_us','Measured value'),('Gain (dB)','gain_db','0'),
+                ('Capture lines / image height','frame_lines','Required line count'),
+                ('Internal line rate (Hz)','line_rate_hz','Camera-specific line rate'),
+                ('Image timeout (ms)','image_timeout_ms','15000'),
+                ('Ready timeout (ms)','readiness_timeout_ms','5000'),
+                ('Approved ready B/I variable','ready_variable','For robot-ready mode only'),
+                ('Approved checkpoint B/I variable','checkpoint_variable','e.g. I011'),
+                ('Camera serial (optional)','camera_serial','Bind on commissioning'),
+                ('FFC gain minimum','ffc_gain_min','default 1.0'),
+                ('FFC gain maximum','ffc_gain_max','default 15.99'),
+                ('FFC row block','ffc_row_block','default 512'),
+                ('Illumination profile','illumination_profile','Optional approved lighting ID')]
         self.camera_fields={}
-        for idx,(title,key,ph) in enumerate(labels):
-            cell=QVBoxLayout();cell.addWidget(txt(title,11,MUTED,True));inp=QLineEdit()
-            inp.setPlaceholderText(ph);cell.addWidget(inp);grid.addLayout(cell,idx//2,idx%2)
-            self.camera_fields[key]=inp
+        for i,(heading,key,hint) in enumerate(labels):
+            cell=QVBoxLayout();cell.addWidget(txt(heading,11,MUTED,True));edit=QLineEdit()
+            edit.setPlaceholderText(hint);cell.addWidget(edit);grid.addLayout(cell,i//2,i%2)
+            self.camera_fields[key]=edit
         p.addLayout(grid)
-        p.addWidget(txt('Line triggering',11,MUTED,True))
-        self.trigger=QComboBox();self.trigger.addItem('Simulated encoder — Phase 1','SIMULATED_ENCODER')
-        self.trigger.addItem('Spindle encoder — production planned','SPINDLE_ENCODER');p.addWidget(self.trigger)
-        p.addWidget(txt('Each inspection view has an independent acquisition profile. Changing the selector retains the other view settings.',11,MUTED))
+        modes=QHBoxLayout()
+        for title, attr, options in (
+            ('Capture start mode','capture_mode', [('Manual software capture','MANUAL_SOFTWARE'),('Robot ready bit → software capture','ROBOT_READY_SOFTWARE')]),
+            ('Software start selector','start_selector',[('AcquisitionStart','AcquisitionStart'),('FrameStart (if supported)','FrameStart')]),
+            ('Flat-field correction','ffc_mode',[('Off','OFF'),('Software FFC (no reference)','SOFTWARE'),('Camera calibrated (separate)','CAMERA_CALIBRATED')])):
+            box=QVBoxLayout();box.addWidget(txt(title,11,MUTED,True));cb=QComboBox()
+            for display,code in options:cb.addItem(display,code)
+            setattr(self,attr,cb);box.addWidget(cb);modes.addLayout(box)
+        p.addLayout(modes)
+        ffrow=QHBoxLayout()
+        for title, attr, options in (
+            ('FFC target','ffc_target_mode',[('95th percentile','PERCENTILE_95'),('Maximum','MAX'),('Mean','MEAN')]),
+            ('FFC failure handling','ffc_fail_policy',[('Fail capture','raise'),('Retain raw + report','raw')])):
+            box=QVBoxLayout();box.addWidget(txt(title,11,MUTED,True));cb=QComboBox()
+            for display,code in options:cb.addItem(display,code)
+            setattr(self,attr,cb);box.addWidget(cb);ffrow.addLayout(box)
+        p.addLayout(ffrow)
+        p.addWidget(txt('software FFC computes one gain per column from each stitched image; '
+                        'no reference-image path is needed. Default 95th percentile, gain 1.0–15.99, '
+                        '512-row blocks.',11,MUTED))
+        self.trigger=self.capture_mode # keep V8 UI references safe; no encoder selection
+        p.addWidget(txt('Line generation: INTERNAL TIMED (software starts an acquisition; it does not generate every line). '
+                        'Hardware capabilities and achievable line rate require physical camera verification.',11,MUTED))
         self.view_picker.currentIndexChanged.connect(self.on_view_changed)
         self.render_camera()
 
@@ -211,7 +241,7 @@ class SKUWizard(QWidget):
         p.addLayout(r)
         self.calibration=QCheckBox('I reviewed the simulated calibration workflow (NOT a physical calibration)')
         p.addWidget(self.calibration)
-        p.addWidget(txt('Real qualification will require image inspection, line completeness, encoder verification and calibrated exposure.',11,MUTED))
+        p.addWidget(txt('Real qualification will require image inspection, line completeness, software-start and internal line-rate validation.',11,MUTED))
 
     def build_validation(self,v):
         p=card(v,'Step 6 — Recipe Validation')
@@ -258,9 +288,13 @@ class SKUWizard(QWidget):
 
     def save_camera(self):
         if not hasattr(self,'camera_fields'):return
-        self.data['camera_profiles'][self.current_view]={
-            **{k:w.text() for k,w in self.camera_fields.items()},
-            'trigger':self.trigger.currentData()}
+        profile=dict(self.data['camera_profiles'].get(self.current_view,{}))
+        profile.update({k:w.text() for k,w in self.camera_fields.items()})
+        for key in ('capture_mode','start_selector','ffc_mode','ffc_target_mode','ffc_fail_policy'):
+            profile[key]=getattr(self,key).currentData()
+        profile['trigger']='SOFTWARE_START'
+        profile['line_source']='INTERNAL_TIMED'
+        self.data['camera_profiles'][self.current_view]=profile
 
     def on_view_changed(self,_index):
         self.save_camera()
@@ -269,12 +303,13 @@ class SKUWizard(QWidget):
 
     def render_camera(self):
         if not hasattr(self,'camera_fields'):return
-        profile=self.data['camera_profiles'][self.current_view]
-        for key,w in self.camera_fields.items():w.setText(profile.get(key,''))
-        index=self.trigger.findData(profile.get('trigger','SIMULATED_ENCODER'))
-        self.trigger.setCurrentIndex(max(index,0))
-        s,r,c=store.ASSIGNMENTS[self.current_view]
-        self.assignment.setText(f'{s}   •   {r}   •   {c}   •   4096 px line-scan')
+        from core.camera_profiles import normalize_profile
+        profile=normalize_profile(self.data['camera_profiles'][self.current_view])
+        for key,w in self.camera_fields.items():w.setText(str(profile.get(key,'')))
+        for key in ('capture_mode','start_selector','ffc_mode','ffc_target_mode','ffc_fail_policy'):
+            cb=getattr(self,key);idx=cb.findData(profile[key]);cb.setCurrentIndex(max(0,idx))
+        station,robot,camera=store.ASSIGNMENTS[self.current_view]
+        self.assignment.setText(f'{station}  •  {robot}  •  {camera}  •  4096 px  •  SOFTWARE START')
 
     def populate(self, data,version=0):
         self.data=store.normalize(data);self.loaded_version=version

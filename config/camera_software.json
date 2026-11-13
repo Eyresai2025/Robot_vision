@@ -1,0 +1,9 @@
+{
+  "backend": "SIMULATION",
+  "real_camera_enabled": false,
+  "trigger_methods": ["MANUAL_SOFTWARE", "ROBOT_READY_SOFTWARE"],
+  "line_source": "INTERNAL_TIMED",
+  "camera_1": {"serial": "", "views": ["sidewall1", "inner"]},
+  "camera_2": {"serial": "", "views": ["tread", "bead", "sidewall2"]},
+  "notes": "Offline testing only. Hardware Arena adapter is experimental and is not connected to the GUI."
+}

@@ -17,7 +17,14 @@ static class Bridge
 {
     static readonly JsonSerializerOptions Json = new() { WriteIndented = false };
     static void Emit(object value) { Console.WriteLine(JsonSerializer.Serialize(value, Json)); Console.Out.Flush(); }
-    static object? Prop(object? value, string name) => value?.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance)?.GetValue(value);
+    static object? Prop(object? value, string name)
+    {
+        if (value == null) return null;
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+        var type = value.GetType();
+        return type.GetProperty(name, flags)?.GetValue(value)
+            ?? type.GetField(name, flags)?.GetValue(value);
+    }
     static string Display(object? value) => value?.ToString() ?? "null";
     static string DescribeError(Exception error) => (error is TargetInvocationException && error.InnerException != null ? error.InnerException : error).Message;
     static object? StatusCode(object? status) => Prop(status, "StatusCode") ?? Prop(status, "Code");
@@ -48,7 +55,7 @@ static class Bridge
         if (variables == null) { outcome = "Variables property unavailable"; return null; }
         var groupName = match.Groups[1].Value.Equals("B", StringComparison.OrdinalIgnoreCase) ? "Byte" : "Integer";
         var group = Prop(variables, groupName);
-        if (group == null) { outcome = "Missing Variables." + groupName + " property; inspect SDK"; return null; }
+        if (group == null) { outcome = "Missing Variables." + groupName + " public property/field; inspect SDK"; return null; }
         var method = group.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .FirstOrDefault(m => m.Name == "Read" && m.GetParameters().Length == 2 &&
                 m.GetParameters()[0].ParameterType == typeof(ushort) && m.GetParameters()[1].IsOut);
@@ -70,6 +77,7 @@ static class Bridge
             var t = assembly.GetType(typename);
             Emit(new { kind = "sdk_type", name = typename, exists = t != null,
                 properties = t?.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(p => p.Name + ":" + p.PropertyType.Name).ToArray(),
+                fields = t?.GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name + ":" + f.FieldType.Name).ToArray(),
                 methods = t?.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
                     .Where(m => m.DeclaringType == t && (m.Name == "OpenConnection" || m.Name == "ReadState" || m.Name == "Read" || m.Name == "CloseConnection"))
                     .Select(m => m.ToString()).ToArray() });

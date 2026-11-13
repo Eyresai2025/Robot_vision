@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 import csv
 
-from PySide6.QtCore import Qt, QUrl, QSize
+from PySide6.QtCore import Qt, QUrl, QSize, QTimer
 from PySide6.QtGui import QPixmap, QDesktopServices, QColor, QFont, QIcon, QPalette
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QLabel, QPushButton, QLineEdit, QComboBox,
@@ -20,9 +20,12 @@ from PySide6.QtWidgets import (
 from core.simulator import Simulation
 from core.robot_telemetry import VirtualRobot, load_addresses, save_addresses
 from core.ymconnect_process import HardwareRobot, load_hardware_settings
+from core.robot_commissioning import readiness, simulate_commissioning, append_event, EVENT_FILE
 from core.store import get_cycles, CAPTURES
 from core import sku_store
 from .sku_pages import SKUManagement, SKUWizard
+from .camera_settings_page import CameraSettingsPage
+from .software_capture_panel import SoftwareCapturePanel
 from .theme import QSS, INK, MUTED, PURPLE, BLUE, MAGENTA, BORDER, WaveBanner, HeroPanel
 
 BASE = Path(__file__).resolve().parents[1]
@@ -270,6 +273,7 @@ class MainWindow(QMainWindow):
             device.state.connect(self.on_hardware_state)
             device.sample.connect(self.on_hardware_sample)
             device.note.connect(self.telemetry_note)
+            device.metrics.connect(self.on_hardware_metrics)
         self.navigate('Live Capture')
         self.refresh_skus()
         self.refresh_history()
@@ -395,6 +399,9 @@ class MainWindow(QMainWindow):
             self.refresh_history()
         if name == 'SKU Management' and hasattr(self, 'sku_manager'):
             self.sku_manager.refresh()
+        if name == 'Camera Settings' and hasattr(self,'camera_settings'):
+            self.camera_settings.refresh()
+            self.software_capture_panel.refresh()
 
     def page(self, heading, subtitle):
         page = QWidget()
@@ -464,6 +471,7 @@ class MainWindow(QMainWindow):
         self.sku.setView(QListView(self.sku))
         self.sku.view().setStyleSheet('QListView { background-color:#FFFFFF; color:#17143C; border:1px solid #D8D4ED; outline:0; } QListView::item { padding:7px; min-height:26px; } QListView::item:selected { color:#2E1B75; background-color:#EEE7FF; }')
         sc.addWidget(self.sku)
+        self.sku.currentIndexChanged.connect(self.on_live_sku_changed)
         cr.addLayout(sc, 3)
         manage_sku = btn('+ New SKU', 'secondary')
         manage_sku.clicked.connect(self.new_sku)
@@ -477,6 +485,8 @@ class MainWindow(QMainWindow):
         self.stop_button.setEnabled(False)
         self.stop_button.clicked.connect(self.sim.stop)
         cr.addWidget(self.stop_button, 0, Qt.AlignmentFlag.AlignBottom)
+        self.live_recipe_info = label('Select an SKU to load its saved five-view software-start profile.',size=11,color=MUTED)
+        cv.addWidget(self.live_recipe_info)
 
         stations = QGridLayout()
         stations.setSpacing(14)
@@ -540,7 +550,7 @@ class MainWindow(QMainWindow):
         self.console.setReadOnly(True)
         self.console.setFixedHeight(112)
         self.console.append('[SYSTEM] Phase 1 ready. Two virtual robots and two virtual cameras available.')
-        self.console.append('[SYSTEM] SIMULATION ONLY — no physical robot or camera commands.')
+        self.console.append('[SYSTEM] SIMULATION ONLY — software-start camera tests are synthetic; no physical camera commands.')
         lc.addWidget(self.console)
         return page
 
@@ -570,6 +580,26 @@ class MainWindow(QMainWindow):
     def recipe_saved(self, code):
         self.refresh_skus(select=code)
         self.sku_manager.refresh()
+        if hasattr(self,'camera_settings'):self.camera_settings.refresh(code)
+        if hasattr(self,'software_capture_panel'):self.software_capture_panel.refresh()
+
+    def on_live_sku_changed(self,*_):
+        if not hasattr(self,'live_recipe_info'):return
+        selected=self.sku.currentData()
+        if not selected:
+            self.live_recipe_info.setText('No active recipe selected');return
+        code,version=selected
+        if version==0:
+            self.live_recipe_info.setText('Legacy simulation SKU — no hardware camera profile');return
+        rec=sku_store.get_recipe(code,version)
+        if not rec:
+            self.live_recipe_info.setText('Recipe not found');return
+        from core.camera_profiles import profile_checks
+        configured=sum(not profile_checks(rec['recipe']['camera_profiles'][v]) for v in sku_store.VIEWS)
+        self.live_recipe_info.setText(f'Loaded {code} V{version}: {configured}/5 software-start view profiles ready. '
+            'Settings only loaded into application memory; no camera contacted.')
+        if hasattr(self,'software_capture_panel'):
+            self.software_capture_panel.refresh()
 
     def refresh_skus(self, select=None):
         if not hasattr(self, 'sku'):
@@ -586,6 +616,7 @@ class MainWindow(QMainWindow):
                              (isinstance(self.sku.itemData(i), tuple) and self.sku.itemData(i)[0] == current)), -1)
             if existing >= 0: self.sku.setCurrentIndex(existing)
         self.sku.blockSignals(False)
+        self.on_live_sku_changed()
         self.start_button.setEnabled(bool(entries) and not self.sim.running)
 
     def build_robot_monitor(self):
@@ -606,6 +637,26 @@ class MainWindow(QMainWindow):
                                  color=MUTED, size=11)
         mb.addWidget(self.mode_notice)
         v.addWidget(mode_bar)
+
+        ready_card, rv = surface(kind='surface', padding=(16, 14, 16, 14), spacing=8)
+        ready_top = QHBoxLayout()
+        ready_top.addWidget(label('V8 · Offline Hardware Readiness', 'section'))
+        ready_top.addStretch()
+        inspect_button = btn('Check SDK + Bridge (offline)', 'secondary')
+        inspect_button.clicked.connect(self.check_hardware_readiness)
+        ready_top.addWidget(inspect_button)
+        test_button = btn('Run offline fault demo', 'secondary')
+        test_button.clicked.connect(self.run_offline_fault_demo)
+        ready_top.addWidget(test_button)
+        rv.addLayout(ready_top)
+        self.readiness_label = label('Run offline checks to verify config, SDK and bridge. This will not access robots.', color=MUTED, size=11)
+        rv.addWidget(self.readiness_label)
+        self.readiness_detail = QTextEdit()
+        self.readiness_detail.setObjectName('console')
+        self.readiness_detail.setReadOnly(True)
+        self.readiness_detail.setFixedHeight(118)
+        rv.addWidget(self.readiness_detail)
+        v.addWidget(ready_card)
 
         grid = QGridLayout()
         grid.setSpacing(14)
@@ -635,14 +686,14 @@ class MainWindow(QMainWindow):
             buttonrow.addStretch()
             q.addLayout(buttonrow)
             fields = {}
-            for name in ('Connection', 'Controller model', 'Servo status', 'Active checkpoint',
+            for name in ('Connection', 'Controller model', 'Servo status', 'Running', 'Hold', 'Alarm / Error', 'Control mode', 'Active checkpoint',
                          'Heartbeat', 'Local poll mean / P95 / max'):
                 fields[name] = field_pair(q, name, '—')
             self.robot_widgets[robot_id] = {'ip': ip, 'status': status, 'toggle': connect, 'fields': fields}
         v.addLayout(grid)
 
         strip = QHBoxLayout()
-        strip.addWidget(label('Virtual Handshake Register Monitor', 'section'))
+        strip.addWidget(label('Handshake Register Monitor · simulated or approved read-only', 'section'))
         strip.addStretch()
         save_btn = btn('Save IP settings', 'secondary')
         save_btn.clicked.connect(self.save_robot_ips)
@@ -680,7 +731,7 @@ class MainWindow(QMainWindow):
         q.addWidget(self.telemetry_console)
         v.addWidget(card)
         warning, wl = surface(kind='noteWarn', padding=(12, 10, 12, 10))
-        wl.addWidget(label('ⓘ  Production reads require the official YMConnect .NET SDK, controls-team approval and an explicit hardware enable flag. No writes, servo or job/motion controls exist in this application.',
+        wl.addWidget(label('ⓘ  Hardware mode is opt-in and read-only. Offline checks never contact robots. Auto-reconnect is disabled by default. No writes, servo or job/motion controls exist in this application.',
                            size=11, color='#A66619'))
         v.addWidget(warning)
         v.addStretch()
@@ -732,7 +783,7 @@ class MainWindow(QMainWindow):
         card['fields']['Connection'].setText(state)
         card['fields']['Controller model'].setText('Not verified; robot arm GP8' if robot_id == 1 else 'Not verified; robot arm GP12')
         if not live:
-            card['fields']['Servo status'].setText('Unknown')
+            for key in ('Servo status','Running','Hold','Alarm / Error','Control mode'): card['fields'][key].setText('Unknown')
             card['fields']['Active checkpoint'].setText('—')
             card['fields']['Heartbeat'].setText('—')
             card['fields']['Local poll mean / P95 / max'].setText('—')
@@ -744,10 +795,46 @@ class MainWindow(QMainWindow):
         card = self.robot_widgets[robot_id]
         card['fields']['Local poll mean / P95 / max'].setText(f"Latest SDK read: {data.get('elapsed_ms', '—')} ms")
         card['fields']['Heartbeat'].setText('Physical heartbeat: not mapped')
-        card['fields']['Servo status'].setText('Not available' if not data.get('status_read_supported') else str(data.get('status') or 'Read returned no decoded state'))
+        state = data.get('status') if data.get('status_verified') else None
+        if isinstance(state, dict):
+            card['fields']['Servo status'].setText('ON' if state.get('is_servo_on') is True else 'OFF' if state.get('is_servo_on') is False else 'Unknown')
+            card['fields']['Connection'].setText('SDK state verified')
+            card['fields']['Running'].setText('Yes' if state.get('is_running') is True else 'No' if state.get('is_running') is False else 'Unknown')
+            card['fields']['Hold'].setText('Yes' if state.get('is_in_hold') is True else 'No' if state.get('is_in_hold') is False else 'Unknown')
+            alarm = state.get('is_alarming'); error = state.get('is_erroring')
+            card['fields']['Alarm / Error'].setText(('Alarm' if alarm else 'No alarm' if alarm is False else 'Alarm unknown') + ' / ' + ('Error' if error else 'No error' if error is False else 'Error unknown'))
+            card['fields']['Control mode'].setText(str(state.get('control_mode','Unknown')))
+        else:
+            card['fields']['Servo status'].setText('Unknown · SDK state not verified')
+            card['fields']['Connection'].setText('Connected · state read not verified')
+            for key in ('Running','Hold','Alarm / Error','Control mode'): card['fields'][key].setText('Unknown')
+        if not data.get('status_verified'):
+            card['fields']['Heartbeat'].setText('No verified status sample')
         for reg, value in (data.get('variables') or {}).items():
             if reg in self.reg_rows:
-                self.register_table.item(self.reg_rows[reg], robot_id+2).setText('—' if value is None else str(value))
+                result = (data.get('variable_results') or {}).get(reg, '')
+                self.register_table.item(self.reg_rows[reg], robot_id+2).setText(str(value) if result == 'ok' and value is not None else '—')
+
+    def on_hardware_metrics(self, robot_id, data):
+        if not hasattr(self, 'robot_mode') or not self.robot_mode.currentIndex(): return
+        if robot_id not in self.robot_widgets: return
+        if data.get('count'):
+            self.robot_widgets[robot_id]['fields']['Local poll mean / P95 / max'].setText(
+                f"SDK reads {data.get('mean_ms')} / {data.get('p95_ms')} / {data.get('max_ms')} ms · n={data.get('count')}")
+
+    def check_hardware_readiness(self):
+        results = readiness(check_sdk=True)
+        count = sum(1 for r in results if r['ok'])
+        self.readiness_label.setText(f'Offline readiness checks: {count}/{len(results)} passed · no robot network access')
+        self.readiness_detail.setPlainText('\n'.join(
+            ('PASS  ' if r['ok'] else 'CHECK ') + r['name'] + ': ' + r['detail'] for r in results))
+        self.telemetry_note(0, f'Offline hardware readiness completed: {count}/{len(results)} checks passed.')
+
+    def run_offline_fault_demo(self):
+        lines = [f'{robot}  |  {state}  |  {detail}' for robot,state,detail in simulate_commissioning()]
+        self.readiness_detail.setPlainText('OFFLINE TEST · SYNTHETIC EVENTS ONLY\n'+'\n'.join(lines))
+        self.readiness_label.setText('Offline connection failure and stale-data demo complete. No network traffic.')
+        self.telemetry_note(0, 'Offline fault demo exercised simulated transitions only; no controller contacted.')
 
     def save_robot_ips(self):
         addresses = {i: self.robot_widgets[i]['ip'].text().strip() for i in (1,2)}
@@ -781,6 +868,7 @@ class MainWindow(QMainWindow):
         f['Connection'].setText('Virtual connected' if online else 'Not connected')
         f['Controller model'].setText('Unknown — awaiting Yaskawa')
         f['Servo status'].setText('Not controlled')
+        for key in ('Running','Hold','Alarm / Error','Control mode'): f[key].setText('Virtual · no real status')
         f['Active checkpoint'].setText(str(reg['I011']) if reg['I011'] else '—')
         f['Heartbeat'].setText(str(reg['I010']) if online else '—')
         timing = '—' if not online or snapshot['poll_mean_ms'] is None else (
@@ -796,12 +884,17 @@ class MainWindow(QMainWindow):
         stamp = datetime.now().strftime('%H:%M:%S')
         text = f'[{stamp}] [Robot {robot_id}] {message}' if robot_id else f'[{stamp}] [System] {message}'
         self.telemetry_logs.append([datetime.now().isoformat(), robot_id, message])
+        try:
+            mode = 'HARDWARE-READONLY' if hasattr(self, 'robot_mode') and self.robot_mode.currentIndex() else 'SIMULATION'
+            append_event(robot_id, mode, 'message', message)
+        except OSError:
+            pass
         if hasattr(self, 'telemetry_console'):
             self.telemetry_console.append(text)
 
     def export_telemetry(self):
-        filename, _ = QFileDialog.getSaveFileName(self, 'Export virtual communication diagnostics',
-                                                   'robot_simulation_diagnostics.csv', 'CSV Files (*.csv)')
+        filename, _ = QFileDialog.getSaveFileName(self, 'Export robot communication diagnostics',
+                                                   'robot_communication_diagnostics.csv', 'CSV Files (*.csv)')
         if not filename:
             return
         try:
@@ -809,52 +902,27 @@ class MainWindow(QMainWindow):
                 writer = csv.writer(handle)
                 writer.writerow(['timestamp', 'robot_id', 'event', 'data_type'])
                 for entry in self.telemetry_logs:
-                    writer.writerow([*entry, 'SIMULATION / LOCAL TIMING'])
+                    writer.writerow([*entry, 'HARDWARE OR SIMULATION EVENT'])
                 for robot_id, robot in self.telemetry.items():
                     snap = robot.snapshot()
                     writer.writerow([datetime.now().isoformat(), robot_id,
                         f"Local poll samples={snap['samples']}, mean={snap['poll_mean_ms']} ms, "
                         f"P95={snap['poll_p95_ms']} ms, max={snap['poll_max_ms']} ms", 'SIMULATION'])
+                for robot_id, device in self.hardware_robots.items():
+                    writer.writerow([datetime.now().isoformat(), robot_id, str(device.snapshot_metrics()), 'HARDWARE SDK READ TIMING'])
         except OSError as exc:
             QMessageBox.warning(self, 'Export failed', str(exc))
             return
         self.telemetry_note(0, f'Diagnostics exported to {filename}')
 
     def build_cameras(self):
-        page, v = self.page('4K Camera Configuration',
-                            'Camera profiles used for each inspection view and virtual capture in Phase 1')
-        grid = QGridLayout()
-        grid.setSpacing(16)
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 1)
-        v.addLayout(grid)
-        for col, view_string in enumerate(['Sidewall 1, Inner Side', 'Tread, Bead, Sidewall 2']):
-            camera = col + 1
-            w, q = surface(kind='stationCard', padding=(20, 20, 20, 22), spacing=14)
-            grid.addWidget(w, 0, col)
-            head = QHBoxLayout()
-            head.addWidget(icon_tile('camera', 'iconBlue' if col else 'iconPurple', 56, 29))
-            titles = QVBoxLayout()
-            titles.addWidget(label(f'Camera {camera}', size=22, color=INK, bold=True))
-            titles.addWidget(label('VIRTUAL 4K LINE SCAN', size=12, color=PURPLE, bold=True))
-            head.addLayout(titles)
-            head.addStretch()
-            q.addLayout(head)
-            for key, val in [
-                ('Assigned views', view_string), ('Resolution width', '4096 pixels'),
-                ('Virtual frame height', '1024 lines'), ('Line trigger', 'Simulated encoder'),
-                ('Exposure', 'To configure per view'), ('Camera serial', 'Not connected')
-            ]:
-                field_pair(q, key, val)
-        info, iv = surface(kind='stationCard', padding=(20, 19, 20, 19), spacing=10)
-        v.addWidget(info)
-        r = QHBoxLayout()
-        r.addWidget(icon_tile('layers', 'iconPurple'))
-        r.addWidget(label('Camera Integration Boundary', 'section'))
-        r.addStretch()
-        iv.addLayout(r)
-        iv.addWidget(label('The production acquisition adapter will use the selected camera SDK and spindle encoder. '
-                           'UDP/HSES polling must not be used as the LineStart timing source.', color='#4E587F'))
+        page, v = self.page('4K LUCID Camera Configuration',
+                            'Two shared cameras · SKU-specific software-start profiles · manual / robot-ready options')
+        self.camera_settings = CameraSettingsPage()
+        self.camera_settings.recipe_saved.connect(self.recipe_saved)
+        v.addWidget(self.camera_settings)
+        self.software_capture_panel = SoftwareCapturePanel(self.hardware_robots)
+        v.addWidget(self.software_capture_panel)
         v.addStretch()
         return page
 
@@ -941,7 +1009,7 @@ class MainWindow(QMainWindow):
              '●  SIMULATION ONLY', 'chipPurple', 'iconPurple'),
             ('camera', 'Camera Acquisition', 'Virtual grayscale patterned PNGs; not actual camera frames.',
              '✓  VIRTUAL INPUT', 'chipGreen', 'iconBlue'),
-            ('activity', 'Encoder', 'Simulated timing only. Production LineStart requires encoder synchronization.',
+            ('activity', 'Encoder', 'Software acquisition start is planned; internally timed line generation must be validated on hardware.',
              'ⓘ  SIMULATED TIMING', 'chipBlue', 'iconPurple'),
             ('shield', 'Safety and Robot Jobs', 'No servo enable, reset, job start, motion, or live variable writes implemented.',
              '✓  NO LIVE WRITES', 'chipGreen', 'iconGreen'),
@@ -994,6 +1062,7 @@ class MainWindow(QMainWindow):
         for robot in self.telemetry.values(): robot.cycle_start()
         self.capture_state.setText('Running')
         self.start_button.setEnabled(False)
+        self.sku.setEnabled(False)
         self.stop_button.setEnabled(True)
         for badge in self.station_status.values():
             badge.setText('●  CAPTURING')
@@ -1027,6 +1096,7 @@ class MainWindow(QMainWindow):
         for robot in self.telemetry.values(): robot.cycle_finish(status == 'COMPLETE')
         self.capture_state.setText(status.title())
         self.start_button.setEnabled(True)
+        self.sku.setEnabled(True)
         self.stop_button.setEnabled(False)
         for st, badge in self.station_status.items():
             if self.sim.info['stations'][st] == 'DONE':

@@ -9,6 +9,7 @@ import sqlite3
 import os
 from pathlib import Path
 from .store import DATA, timestamp
+from . import camera_profiles as camcfg
 
 DB = DATA / 'ceat_cycles.sqlite3'
 RECIPES = DATA / 'recipes'
@@ -51,8 +52,7 @@ def initial_recipe():
         'code':'CEAT_195_65_R15', 'width':'195', 'aspect':'65', 'rim':'15',
         'rpm':'60', 'description':'', 'station_confirmed':True,
         'checkpoints': dict(DEFAULT_CP),
-        'camera_profiles': {key:{'exposure_us':'', 'gain_db':'0', 'frame_lines':'',
-                                 'encoder_ppr':'', 'trigger':'SIMULATED_ENCODER'} for key in VIEWS},
+        'camera_profiles': {key:camcfg.default_profile() for key in VIEWS},
         'calibration_reviewed':False,
         'notes':'',
     }
@@ -79,8 +79,7 @@ def normalize(data):
     d['camera_profiles'] = {}
     for key in VIEWS:
         src = profiles.get(key) or {}
-        d['camera_profiles'][key] = {name:str(src.get(name,'')).strip()[:64]
-                                     for name in ('exposure_us','gain_db','frame_lines','encoder_ppr','trigger')}
+        d['camera_profiles'][key] = camcfg.normalize_profile(src)
     d['station_confirmed'] = bool(d.get('station_confirmed'))
     d['calibration_reviewed'] = bool(d.get('calibration_reviewed'))
     return d
@@ -93,18 +92,12 @@ def validation(data):
     cp_values = list(d['checkpoints'].values())
     checks.append(('Checkpoint references',all(cp_values) and len(set(cp_values))==5,
                    'Five distinct proposed checkpoint references required'))
-    profiles_good = True
-    for k in VIEWS:
-        p = d['camera_profiles'][k]
-        try:
-            exp = float(p['exposure_us']); gain=float(p['gain_db'])
-            lines=int(p['frame_lines']); enc=int(p['encoder_ppr'])
-            if not (0 < exp < 1_000_000 and 0 <= gain <= 48 and lines > 0 and enc > 0):
-                profiles_good=False
-        except (ValueError, TypeError): profiles_good=False
-        if p['trigger'] not in ('SIMULATED_ENCODER','SPINDLE_ENCODER'): profiles_good=False
-    checks.append(('Camera profile parameters',profiles_good,
-                   'All five views require exposure, gain, frame height and encoder pulses/rev'))
+    problems = {k:camcfg.profile_checks(d['camera_profiles'][k]) for k in VIEWS}
+    profiles_good = all(not errors for errors in problems.values())
+    problem_summary = '; '.join(f'{VIEW_NAMES[k]}: {", ".join(errors[:2])}'
+                                for k,errors in problems.items() if errors)
+    checks.append(('Software-start camera profiles', profiles_good,
+                   problem_summary or 'Five views configured; no encoder/hardware trigger'))
     checks.append(('Simulated calibration reviewed',d['calibration_reviewed'],
                    'Simulation-only visual review; not physical calibration'))
     checks.append(('Physical hardware calibration',False,'Not available in simulator'))
@@ -139,6 +132,7 @@ def save_recipe(data, status='DRAFT'):
     out=folder/f'recipe_v{version}.json';tmp=out.with_suffix('.json.tmp')
     tmp.write_text(json.dumps(result,indent=2), encoding='utf-8')
     os.replace(tmp,out)
+    camcfg.export_snapshot(result,RECIPES)
     return result
 
 
